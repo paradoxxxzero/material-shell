@@ -248,7 +248,7 @@ function layouts_settings_tab(notebook) {
     });
 
     const gaphbox = new Gtk.HBox();
-    const gap = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 50, 1);
+    const gap = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1);
     settings.bind(
         'gap',
         gap.get_adjustment(),
@@ -270,6 +270,31 @@ function layouts_settings_tab(notebook) {
     gaphbox.pack_end(gap, true, true, 0);
 
     parent_vbox.add(gaphbox);
+
+    const blurhbox = new Gtk.HBox();
+    const blur = new Gtk.Switch({ valign: Gtk.Align.CENTER });
+
+    settings.bind(
+        'blur-background',
+        blur,
+        'active',
+        Gio.SettingsBindFlags.DEFAULT
+    );
+
+    const blurname = new Gtk.Label({ xalign: 0 });
+    blurname.set_markup(`<span size="medium">Blur background</span>`);
+    const blurdesc = new Gtk.Label({ xalign: 0 });
+    blurdesc.set_markup(
+        `<span size="small">Activate to blur background visible in gaps</span>`
+    );
+
+    const blurvbox = new Gtk.VBox();
+    blurvbox.pack_start(blurname, false, false, 0);
+    blurvbox.pack_start(blurdesc, false, false, 0);
+    blurhbox.pack_start(blurvbox, true, true, 10);
+    blurhbox.pack_end(blur, true, true, 0);
+
+    parent_vbox.add(blurhbox);
 
     const tweentimehbox = new Gtk.HBox();
     const tweentime = Gtk.Scale.new_with_range(

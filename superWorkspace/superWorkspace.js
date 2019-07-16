@@ -134,6 +134,7 @@ var SuperWorkspace = class SuperWorkspace {
         this.windows.push(window);
         this.onFocus(window);
         this.throttleEmit();
+        this.syncBlur();
     }
 
     removeWindow(window) {
@@ -150,6 +151,7 @@ var SuperWorkspace = class SuperWorkspace {
             }
         }
         this.throttleEmit();
+        this.syncBlur();
     }
 
     swapWindows(firstWindow, secondWindow) {
@@ -254,6 +256,7 @@ var SuperWorkspace = class SuperWorkspace {
             from: this.categorizedAppCard,
             id: signalId
         });
+        this.syncBlur();
     }
 
     unRevealBackground() {
@@ -265,6 +268,7 @@ var SuperWorkspace = class SuperWorkspace {
         });
         this.backgroundSignals = [];
         this.backgroundShown = false;
+        this.syncBlur();
     }
 
     throttleEmit() {
@@ -286,6 +290,15 @@ var SuperWorkspace = class SuperWorkspace {
     setApps(apps) {
         this.apps = apps;
         this.categorizedAppCard._loadApps(apps);
+    }
+
+    syncBlur() {
+        const blurEffect = this.backgroundContainer.get_effect(
+            'material-shell-blur-effect'
+        );
+        if (blurEffect) {
+            blurEffect.enabled = !!this.windows.length && !this.backgroundShown;
+        }
     }
 };
 Signals.addSignalMethods(SuperWorkspace.prototype);

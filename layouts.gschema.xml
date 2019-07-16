@@ -60,6 +60,11 @@
       <summary>Gap size around tiled windows</summary>
       <description>Determines the gap size between windows</description>
     </key>
+    <key name="blur-background" type="b">
+      <default>false</default>
+      <summary>Blur background</summary>
+      <description>Activate to blur background visible in gaps</description>
+    </key>
     <key name="tween-time" type="d">
       <default>0.25</default>
       <summary>Animation duration</summary>

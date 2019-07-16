@@ -1,9 +1,10 @@
-const { Shell, Meta } = imports.gi;
+const { Shell, Meta, Clutter } = imports.gi;
 const Main = imports.ui.main;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { WorkspaceCategories } = Me.imports.superWorkspace.workspaceCategories;
 const { SuperWorkspace } = Me.imports.superWorkspace.superWorkspace;
 const { WorkspaceList } = Me.imports.widget.workspaceList;
+const { getSettings } = Me.imports.utils.settings;
 
 /* exported SuperWorkspaceManager */
 var SuperWorkspaceManager = class SuperWorkspaceManager {
@@ -51,6 +52,19 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
         this.workspaceList = new WorkspaceList(this);
         Main.panel._leftBox.add_child(this.workspaceList);
         this.dispatchExistingWindows();
+
+        this.layoutsSettings = getSettings('layouts');
+        this.settingsSignal = this.layoutsSettings.connect(
+            'changed::blur-background',
+            (schema, key) => {
+                this.blurBackground = schema.get_boolean('blur-background');
+                this.handleBlurBackground();
+            }
+        );
+        this.blurBackground = this.layoutsSettings.get_boolean(
+            'blur-background'
+        );
+        this.handleBlurBackground();
     }
 
     destroy() {
@@ -270,5 +284,32 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
                 superWorkspace.hideUI();
             }
         }
+    }
+
+    handleBlurBackground() {
+        if (this.blurBackground) {
+            this.superWorkspaces.forEach(({ backgroundContainer, windows }) => {
+                const blur = new Clutter.BlurEffect();
+                blur.enabled = !!windows.length;
+                backgroundContainer.add_effect_with_name(
+                    'material-shell-blur-effect',
+                    blur
+                );
+            });
+        } else {
+            this.superWorkspaces.forEach(
+                ({ backgroundContainer }) =>
+                    backgroundContainer.get_effect(
+                        'material-shell-blur-effect'
+                    ) &&
+                    backgroundContainer.remove_effect_by_name(
+                        'material-shell-blur-effect'
+                    )
+            );
+        }
+    }
+
+    onDestroy() {
+        this.settings.disconnect(this.settingsSignal);
     }
 };

@@ -1,6 +1,7 @@
-const { Clutter, GLib, St, Gio } = imports.gi;
+const { Clutter, GLib, St, Gio, Shell } = imports.gi;
 const Signals = imports.signals;
 const Main = imports.ui.main;
+const Tweener = imports.ui.tweener;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
@@ -295,9 +296,31 @@ var SuperWorkspace = class SuperWorkspace {
     }
 
     addBlur() {
-        // TODO: Use a configurable ShaderEffect instead for a prettier blur
-        const blur = new Clutter.BlurEffect();
-        blur.enabled = !!this.windows.length;
+        const blur = new Clutter.ShaderEffect({
+            shader_type: Clutter.ShaderType.FRAGMENT_SHADER
+        });
+        const shader = Shell.get_file_contents_utf8_sync(
+            `${Me.path}/utils/blur-shader.glsl`
+        );
+        blur.set_shader_source(shader);
+        blur.set_uniform_value('height', this.backgroundContainer.get_height());
+        blur.set_uniform_value('width', this.backgroundContainer.get_width());
+        blur.set_uniform_value('intensity', 1.0);
+        // blur.enabled = !!this.windows.length;
+        let intensity = 1.0;
+        const show = function() {
+            intensity += 0.02;
+            this.set_uniform_value('intensity', intensity);
+        };
+        if (this.windows.length) {
+            Tweener.addCaller(blur, {
+                onUpdate: show,
+                time: 1,
+                count: 1000,
+                transition: 'easeOutQuad'
+            });
+        }
+
         this.backgroundContainer.add_effect_with_name(BLUR_KEY, blur);
     }
 
@@ -310,7 +333,31 @@ var SuperWorkspace = class SuperWorkspace {
     syncBlur() {
         const blurEffect = this.backgroundContainer.get_effect(BLUR_KEY);
         if (blurEffect) {
-            blurEffect.enabled = !!this.windows.length && !this.backgroundShown;
+            if (!!this.windows.length && !this.backgroundShown) {
+                let intensity = 1.0;
+                const show = function() {
+                    intensity += 0.02;
+                    this.set_uniform_value('intensity', intensity);
+                };
+                Tweener.addCaller(blurEffect, {
+                    onUpdate: show,
+                    time: 1,
+                    count: 1000,
+                    transition: 'easeOutQuad'
+                });
+            } else {
+                let intensity = 20.0;
+                const show = function() {
+                    intensity -= 0.02;
+                    this.set_uniform_value('intensity', intensity);
+                };
+                Tweener.addCaller(blurEffect, {
+                    onUpdate: show,
+                    time: 1,
+                    count: 1000,
+                    transition: 'easeOutQuad'
+                });
+            }
         }
     }
 };

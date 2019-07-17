@@ -13,7 +13,8 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
         this.windowTracker = Shell.WindowTracker.get_default();
         this.superWorkspaces = [];
         this.appsByCategory = appsByCategory;
-        this.categoryKeyOrderedList = [];
+        this.categoryKeyOrderedList =
+            Me.stateManager.getState('categoryKeyOrderedList') || [];
         for (let [key, category] of Object.entries(WorkspaceCategories)) {
             if (!this.appsByCategory[key].length) continue;
             if (category.primary) {
@@ -24,7 +25,9 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
                     Main.layoutManager.primaryMonitor,
                     false
                 );
-                this.categoryKeyOrderedList.push(key);
+                if (this.categoryKeyOrderedList.indexOf(key) === -1) {
+                    this.categoryKeyOrderedList.push(key);
+                }
                 this.superWorkspaces.push(superWorkspace);
             } else {
                 // For Each monitor
@@ -114,6 +117,74 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
         }
     }
 
+    setWorkspaceBefore(categoryKeyToMove, categoryKeyRelative) {
+        let categoryKeyToMoveIndex = this.categoryKeyOrderedList.indexOf(
+            categoryKeyToMove
+        );
+        this.categoryKeyOrderedList.splice(categoryKeyToMoveIndex, 1);
+
+        let categoryKeyRelativeIndex = this.categoryKeyOrderedList.indexOf(
+            categoryKeyRelative
+        );
+        this.categoryKeyOrderedList.splice(
+            categoryKeyRelativeIndex,
+            0,
+            categoryKeyToMove
+        );
+        this.saveCategoryKeyOrderedList();
+        this.refreshWorkspaceWindows();
+        this.refreshVisiblePrimarySuperWorkspace();
+    }
+
+    setWorkspaceAfter(categoryKeyToMove, categoryKeyRelative) {
+        let categoryKeyToMoveIndex = this.categoryKeyOrderedList.indexOf(
+            categoryKeyToMove
+        );
+        this.categoryKeyOrderedList.splice(categoryKeyToMoveIndex, 1);
+
+        let categoryKeyRelativeIndex = this.categoryKeyOrderedList.indexOf(
+            categoryKeyRelative
+        );
+        this.categoryKeyOrderedList.splice(
+            categoryKeyRelativeIndex + 1,
+            0,
+            categoryKeyToMove
+        );
+        this.saveCategoryKeyOrderedList();
+        this.refreshWorkspaceWindows();
+        this.refreshVisiblePrimarySuperWorkspace();
+    }
+
+    saveCategoryKeyOrderedList() {
+        Me.stateManager.setState(
+            'categoryKeyOrderedList',
+            this.categoryKeyOrderedList
+        );
+    }
+
+    refreshWorkspaceWindows() {
+        this.categoryKeyOrderedList.forEach((categoryKey, index) => {
+            let superWorkspace = this.getSuperWorkspaceByCategoryKey(
+                categoryKey
+            );
+            let workspace = this.workspaceManager.get_workspace_by_index(index);
+            for (let metaWindow of superWorkspace.windows) {
+                metaWindow.change_workspace(workspace);
+            }
+        });
+    }
+
+    refreshVisiblePrimarySuperWorkspace() {
+        this.superWorkspaces.forEach(superWorkspace => {
+            if (!superWorkspace.category.primary) return;
+            superWorkspace.frontendContainer.hide();
+            superWorkspace.backgroundContainer.hide();
+        });
+        let activeSuperWorkspace = this.getActiveSuperWorkspace();
+        activeSuperWorkspace.frontendContainer.show();
+        activeSuperWorkspace.backgroundContainer.show();
+    }
+
     getActiveSuperWorkspace() {
         let activeWorkspaceIndex = this.workspaceManager.get_active_workspace_index();
         return this.getPrimarySuperWorkspaceByIndex(activeWorkspaceIndex);
@@ -121,9 +192,7 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
 
     getPrimarySuperWorkspaceByIndex(index) {
         return this.getSuperWorkspaceByCategoryKey(
-            this.categoryKeyOrderedList[
-                Math.min(index, this.categoryKeyOrderedList.length - 1)
-            ]
+            this.categoryKeyOrderedList[index]
         );
     }
 

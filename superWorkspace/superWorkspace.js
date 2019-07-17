@@ -13,6 +13,8 @@ const CategorizedAppCard =
 
 const { Stack } = Me.imports.widget.layout;
 
+const BLUR_KEY = 'material-shell-blur-effect';
+
 var SuperWorkspace = class SuperWorkspace {
     constructor(categoryKey, category, apps, monitor, visible) {
         this.categoryKey = categoryKey;
@@ -292,10 +294,21 @@ var SuperWorkspace = class SuperWorkspace {
         this.categorizedAppCard._loadApps(apps);
     }
 
+    addBlur() {
+        // TODO: Use a configurable ShaderEffect instead for a prettier blur
+        const blur = new Clutter.BlurEffect();
+        blur.enabled = !!this.windows.length;
+        this.backgroundContainer.add_effect_with_name(BLUR_KEY, blur);
+    }
+
+    removeBlur() {
+        if (this.backgroundContainer.get_effect(BLUR_KEY)) {
+            this.backgroundContainer.remove_effect_by_name(BLUR_KEY);
+        }
+    }
+
     syncBlur() {
-        const blurEffect = this.backgroundContainer.get_effect(
-            'material-shell-blur-effect'
-        );
+        const blurEffect = this.backgroundContainer.get_effect(BLUR_KEY);
         if (blurEffect) {
             blurEffect.enabled = !!this.windows.length && !this.backgroundShown;
         }

@@ -58,13 +58,17 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
             'changed::blur-background',
             (schema, key) => {
                 this.blurBackground = schema.get_boolean('blur-background');
-                this.handleBlurBackground();
+                this.superWorkspaces.forEach(sw =>
+                    sw[this.blurBackground ? 'addBlur' : 'removeBlur']()
+                );
             }
         );
         this.blurBackground = this.layoutsSettings.get_boolean(
             'blur-background'
         );
-        this.handleBlurBackground();
+        this.superWorkspaces.forEach(sw =>
+            sw[this.blurBackground ? 'addBlur' : 'removeBlur']()
+        );
     }
 
     destroy() {
@@ -283,29 +287,6 @@ var SuperWorkspaceManager = class SuperWorkspaceManager {
             } else {
                 superWorkspace.hideUI();
             }
-        }
-    }
-
-    handleBlurBackground() {
-        if (this.blurBackground) {
-            this.superWorkspaces.forEach(({ backgroundContainer, windows }) => {
-                const blur = new Clutter.BlurEffect();
-                blur.enabled = !!windows.length;
-                backgroundContainer.add_effect_with_name(
-                    'material-shell-blur-effect',
-                    blur
-                );
-            });
-        } else {
-            this.superWorkspaces.forEach(
-                ({ backgroundContainer }) =>
-                    backgroundContainer.get_effect(
-                        'material-shell-blur-effect'
-                    ) &&
-                    backgroundContainer.remove_effect_by_name(
-                        'material-shell-blur-effect'
-                    )
-            );
         }
     }
 

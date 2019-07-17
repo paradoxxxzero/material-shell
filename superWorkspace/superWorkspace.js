@@ -1,6 +1,7 @@
 const { Clutter, GLib, St, Gio } = imports.gi;
 const Signals = imports.signals;
 const Main = imports.ui.main;
+const Tweener = imports.ui.tweener;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
@@ -14,6 +15,7 @@ const CategorizedAppCard =
 const { Stack } = Me.imports.widget.layout;
 
 const BLUR_KEY = 'material-shell-blur-effect';
+const FADE_OUT_TIME = 0.25;
 
 var SuperWorkspace = class SuperWorkspace {
     constructor(categoryKey, category, apps, monitor, visible) {
@@ -136,7 +138,7 @@ var SuperWorkspace = class SuperWorkspace {
         this.windows.push(window);
         this.onFocus(window);
         this.throttleEmit();
-        this.syncBlur();
+        this.syncActiveEffects();
     }
 
     removeWindow(window) {
@@ -153,7 +155,7 @@ var SuperWorkspace = class SuperWorkspace {
             }
         }
         this.throttleEmit();
-        this.syncBlur();
+        this.syncActiveEffects();
     }
 
     swapWindows(firstWindow, secondWindow) {
@@ -258,7 +260,7 @@ var SuperWorkspace = class SuperWorkspace {
             from: this.categorizedAppCard,
             id: signalId
         });
-        this.syncBlur();
+        this.syncActiveEffects();
     }
 
     unRevealBackground() {
@@ -270,7 +272,7 @@ var SuperWorkspace = class SuperWorkspace {
         });
         this.backgroundSignals = [];
         this.backgroundShown = false;
-        this.syncBlur();
+        this.syncActiveEffects();
     }
 
     throttleEmit() {
@@ -307,10 +309,18 @@ var SuperWorkspace = class SuperWorkspace {
         }
     }
 
-    syncBlur() {
+    syncActiveEffects() {
+        const activeBackground = !this.windows.length || this.backgroundShown;
+
+        const actor = this.categorizedAppCard;
+        Tweener.addTween(actor, {
+            opacity: activeBackground ? 255 : 0,
+            time: FADE_OUT_TIME,
+            transition: 'easeOutQuad'
+        });
         const blurEffect = this.backgroundContainer.get_effect(BLUR_KEY);
         if (blurEffect) {
-            blurEffect.enabled = !!this.windows.length && !this.backgroundShown;
+            blurEffect.enabled = !activeBackground;
         }
     }
 };

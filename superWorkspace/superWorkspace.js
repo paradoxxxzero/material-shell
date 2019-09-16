@@ -6,15 +6,12 @@ const Background = imports.ui.background;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const { MaximizeLayout } = Me.imports.tilingManager.tilingLayouts.maximize;
 const TopPanel = Me.imports.widget.topPanelWidget.TopPanel;
-const { debounce } = Me.imports.utils.index;
 const WindowUtils = Me.imports.utils.windows;
 
 const CategorizedAppCard =
     Me.imports.widget.categorizedAppCard.CategorizedAppCard;
 
 const { Stack } = Me.imports.widget.layout;
-
-const EMIT_DEBOUNCE_DELAY = 100;
 
 var SuperWorkspace = class SuperWorkspace {
     constructor(
@@ -44,13 +41,6 @@ var SuperWorkspace = class SuperWorkspace {
         this.frontendContainer = new St.Widget();
 
         this.frontendContainer.set_position(this.monitor.x, this.monitor.y);
-
-        // Only emit window changed after EMIT_DEBOUNCE_DELAY ms without call
-        // This prevents multiple tiling on window add for instance
-        this.emitWindowsChangedDebounced = debounce(
-            this.emitWindowsChanged,
-            EMIT_DEBOUNCE_DELAY
-        );
 
         this.panel = new TopPanel(this);
 
@@ -166,7 +156,7 @@ var SuperWorkspace = class SuperWorkspace {
 
         this.onFocus(window);
 
-        this.emitWindowsChangedDebounced(this.windows, oldWindows);
+        this.emitWindowsChanged(this.windows, oldWindows);
     }
 
     removeWindow(window) {
@@ -180,7 +170,7 @@ var SuperWorkspace = class SuperWorkspace {
         if (window === this.windowFocused) {
             this.focusLastWindow();
         }
-        this.emitWindowsChangedDebounced(this.windows, oldWindows);
+        this.emitWindowsChanged(this.windows, oldWindows);
     }
 
     swapWindows(firstWindow, secondWindow) {
@@ -316,33 +306,9 @@ var SuperWorkspace = class SuperWorkspace {
         this.backgroundShown = false;
     }
 
-    emitWindowsChanged(newWindows, oldWindows, debouncedArgs) {
-        // In case of direct call check if it has _debouncedArgs
-        if (debouncedArgs) {
-            // Get first debounced oldWindows
-            const firstOldWindows = debouncedArgs[0][1];
-            // And compare it with the new newWindows
-            if (
-                newWindows.length === firstOldWindows.length &&
-                newWindows.every((window, i) => firstOldWindows[i] === window)
-            ) {
-                // If it's the same, the changes have compensated themselves
-                // So in the end nothing happened:
-
-                return;
-            }
-            oldWindows = firstOldWindows;
-        }
-
+    emitWindowsChanged(newWindows, oldWindows) {
         if (!this.destroyed) {
-            // Make it async to prevent concurrent debounce calls
-            if (debouncedArgs) {
-                GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
-                    this.emit('windows-changed', newWindows, oldWindows);
-                });
-            } else {
-                this.emit('windows-changed', newWindows, oldWindows);
-            }
+            this.emit('windows-changed', newWindows, oldWindows);
         }
     }
 
